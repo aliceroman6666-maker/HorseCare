@@ -1,0 +1,112 @@
+package com.horsecare.app.data.repository
+
+import com.horsecare.app.data.dao.ContactDao
+import com.horsecare.app.data.dao.HealthRecordDao
+import com.horsecare.app.data.dao.HorseDao
+import com.horsecare.app.data.dao.ReminderDao
+import com.horsecare.app.data.dao.TrainingSessionDao
+import com.horsecare.app.data.entity.Contact
+import com.horsecare.app.data.entity.HealthRecord
+import com.horsecare.app.data.entity.Horse
+import com.horsecare.app.data.entity.Reminder
+import com.horsecare.app.data.entity.ReminderType
+import com.horsecare.app.data.entity.TrainingSession
+import kotlinx.coroutines.flow.Flow
+import java.time.LocalDate
+
+/**
+ * Прострочений запис здоров'я - обгортка для показу банера на головному екрані.
+ */
+data class OverdueHealthItem(
+    val record: HealthRecord,
+    val daysOverdue: Long
+)
+
+class HorseCareRepository(
+    private val horseDao: HorseDao,
+    private val trainingSessionDao: TrainingSessionDao,
+    private val healthRecordDao: HealthRecordDao,
+    private val contactDao: ContactDao,
+    private val reminderDao: ReminderDao
+) {
+    // --- Horse ---
+    fun getAllHorses(): Flow<List<Horse>> = horseDao.getAllHorses()
+    fun getHorseById(id: Long): Flow<Horse?> = horseDao.getHorseById(id)
+    suspend fun saveHorse(horse: Horse): Long = horseDao.insert(horse)
+    suspend fun updateHorse(horse: Horse) = horseDao.update(horse)
+
+    // --- Training ---
+    fun getSessionsForHorse(horseId: Long): Flow<List<TrainingSession>> =
+        trainingSessionDao.getSessionsForHorse(horseId)
+
+    fun getLastSession(horseId: Long): Flow<TrainingSession?> =
+        trainingSessionDao.getLastSession(horseId)
+
+    fun getFrequentTrainingTypes(horseId: Long): Flow<List<String>> =
+        trainingSessionDao.getFrequentTrainingTypes(horseId)
+
+    suspend fun saveTrainingSession(session: TrainingSession): Long =
+        trainingSessionDao.insert(session)
+
+    // --- Health ---
+    fun getHealthRecords(horseId: Long): Flow<List<HealthRecord>> =
+        healthRecordDao.getRecordsForHorse(horseId)
+
+    fun getLatestRecordPerType(horseId: Long): Flow<List<HealthRecord>> =
+        healthRecordDao.getLatestRecordPerType(horseId)
+
+    fun getFrequentNamesForType(horseId: Long, type: String): Flow<List<String>> =
+        healthRecordDao.getFrequentNamesForType(horseId, type)
+
+    /**
+     * Зберігає запис здоров'я і одразу планує два нагадування
+     * (за 3 дні до nextDueDate і в день nextDueDate), якщо nextDueDate вказано.
+     */
+    suspend fun saveHealthRecordWithReminders(record: HealthRecord): Long {
+        val recordId = healthRecordDao.insert(record)
+        record.nextDueDate?.let { dueDate ->
+            reminderDao.deleteForRecord(recordId)
+            reminderDao.insert(
+                Reminder(
+                    healthRecordId = recordId,
+                    triggerDate = dueDate.minusDays(3),
+                    type = ReminderType.THREE_DAYS_BEFORE
+                )
+            )
+            reminderDao.insert(
+                Reminder(
+                    healthRecordId = recordId,
+                    triggerDate = dueDate,
+                    type = ReminderType.ON_DUE_DATE
+                )
+            )
+        }
+        return recordId
+    }
+
+    /**
+     * Перенесення дати наступної події: оновлює nextDueDate і перепланує нагадування.
+     */
+    suspend fun rescheduleHealthRecord(recordId: Long, newDate: LocalDate) {
+        healthRecordDao.updateNextDueDate(recordId, newDate.toString())
+        reminderDao.deleteForRecord(recordId)
+        reminderDao.insert(
+            Reminder(
+                healthRecordId = recordId,
+                triggerDate = newDate.minusDays(3),
+                type = ReminderType.THREE_DAYS_BEFORE
+            )
+        )
+        reminderDao.insert(
+            Reminder(
+                healthRecordId = recordId,
+                triggerDate = newDate,
+                type = ReminderType.ON_DUE_DATE
+            )
+        )
+    }
+
+    // --- Contacts ---
+    fun getAllContacts(): Flow<List<Contact>> = contactDao.getAllContacts()
+    suspend fun saveContact(contact: Contact): Long = contactDao.insert(contact)
+}
