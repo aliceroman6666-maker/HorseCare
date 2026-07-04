@@ -2,7 +2,9 @@ package com.horsecare.app.ui.screens.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Menu
@@ -66,7 +68,7 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .verticalScrollWorkaround()
+                .verticalScroll(rememberScrollState())
         ) {
             // Банер прострочень - завжди зверху, перекриває звичайну "найближчу подію"
             if (uiState.overdueItems.isNotEmpty()) {
@@ -104,12 +106,7 @@ fun HomeScreen(
     }
 }
 
-// Проста обгортка, щоб не тягнути окремий імпорт verticalScroll в кожен файл
-@Composable
-private fun Modifier.verticalScrollWorkaround(): Modifier {
-    val scrollState = androidx.compose.foundation.rememberScrollState()
-    return this.then(androidx.compose.foundation.verticalScroll(scrollState))
-}
+// (обгортку прибрано - тепер verticalScroll викликається напряму)
 
 @Composable
 private fun OverdueBanner(
