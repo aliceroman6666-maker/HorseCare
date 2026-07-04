@@ -11,6 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -21,8 +22,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
@@ -116,7 +120,7 @@ fun AddHorseScreen(
     }
 
     val isFormValid = name.isNotBlank() && breed.isNotBlank() && birthDate != null &&
-            sex != null && color.isNotBlank() && chipNumber.isNotBlank()
+            sex != null && color.isNotBlank()
 
     Scaffold(
         topBar = {
@@ -139,20 +143,31 @@ fun AddHorseScreen(
         ) {
             // --- Фото ---
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp)),
+                modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
-                if (photoUri != null) {
-                    AsyncImage(
-                        model = photoUri,
-                        contentDescription = "Фото коня",
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
-                    Text("Фото коня не обрано", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Box(
+                    modifier = Modifier
+                        .size(180.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (photoUri != null) {
+                        AsyncImage(
+                            model = photoUri,
+                            contentDescription = "Фото коня",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        Text(
+                            "Немає фото",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
                 }
             }
             Spacer(Modifier.height(8.dp))
@@ -256,7 +271,7 @@ fun AddHorseScreen(
             OutlinedTextField(
                 value = chipNumber,
                 onValueChange = { chipNumber = it },
-                label = { Text("Номер чипу/паспорта *") },
+                label = { Text("Номер чипу/паспорта") },
                 modifier = Modifier.fillMaxWidth()
             )
 
