@@ -22,6 +22,9 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Decode debug keystore
+        run: base64 -d keystore/debug.keystore.base64 > debug.keystore
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
