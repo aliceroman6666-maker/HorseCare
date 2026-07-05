@@ -26,4 +26,11 @@ data class Horse(
 ) {
     val ageYears: Int
         get() = Period.between(birthDate, LocalDate.now()).years
+
+    /**
+     * Скільки часу минуло з дати "Зі мною з" - роки та місяці.
+     * Повертає null, якщо дата не вказана.
+     */
+    val ownershipPeriod: Period?
+        get() = acquiredDate?.let { Period.between(it, LocalDate.now()) }
 }
