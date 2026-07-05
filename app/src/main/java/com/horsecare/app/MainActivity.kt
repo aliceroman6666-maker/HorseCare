@@ -14,6 +14,7 @@ import com.horsecare.app.ui.screens.home.HomeScreen
 import com.horsecare.app.ui.screens.home.HomeViewModel
 import com.horsecare.app.ui.screens.horse.AddHorseScreen
 import com.horsecare.app.ui.screens.horse.AddHorseViewModel
+import com.horsecare.app.ui.screens.horse.EditHorseViewModel
 import com.horsecare.app.ui.theme.HorseCareTheme
 
 class MainActivity : ComponentActivity() {
@@ -26,8 +27,6 @@ class MainActivity : ComponentActivity() {
                 NavHost(navController = navController, startDestination = "home") {
 
                     composable("home") {
-                        // Поки що працюємо з першим конем (id = 1).
-                        // Коли додамо перемикач - id буде динамічним.
                         val homeViewModel: HomeViewModel = viewModel(
                             factory = RepositoryViewModelFactory { repo ->
                                 HomeViewModel(repo, horseId = 1L)
@@ -38,6 +37,7 @@ class MainActivity : ComponentActivity() {
                         HomeScreen(
                             uiState = uiState,
                             onAddHorseClick = { navController.navigate("addHorse") },
+                            onEditHorseClick = { navController.navigate("editHorse") },
                             onMenuClick = { /* TODO: перемикання між кіньми */ },
                             onMarkDone = { /* TODO: відмітити виконаним */ },
                             onReschedule = { record ->
@@ -83,6 +83,44 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                         )
+                    }
+
+                    composable("editHorse") {
+                        val editHorseViewModel: EditHorseViewModel = viewModel(
+                            factory = RepositoryViewModelFactory { repo ->
+                                EditHorseViewModel(repo, horseId = 1L)
+                            }
+                        )
+                        val existingHorse by editHorseViewModel.horse.collectAsState()
+
+                        existingHorse?.let { horse ->
+                            AddHorseScreen(
+                                initialHorse = horse,
+                                onBack = { navController.popBackStack() },
+                                onSave = { name, breed, birthDate, sex, color, chipNumber,
+                                           photoUri, heightCm, weightKg, markings,
+                                           acquiredDate, sireName, damName ->
+                                    editHorseViewModel.updateHorse(
+                                        horse.copy(
+                                            name = name,
+                                            breed = breed,
+                                            birthDate = birthDate,
+                                            sex = sex,
+                                            color = color,
+                                            chipNumber = chipNumber.takeIf { it.isNotBlank() },
+                                            photoUri = photoUri,
+                                            heightCm = heightCm,
+                                            weightKg = weightKg,
+                                            markings = markings?.takeIf { it.isNotBlank() },
+                                            acquiredDate = acquiredDate,
+                                            sireName = sireName?.takeIf { it.isNotBlank() },
+                                            damName = damName?.takeIf { it.isNotBlank() }
+                                        ),
+                                        onSaved = { navController.popBackStack() }
+                                    )
+                                }
+                            )
+                        }
                     }
                 }
             }
