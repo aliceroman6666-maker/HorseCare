@@ -26,10 +26,10 @@ class AddHorseViewModel(
         acquiredDate: LocalDate?,
         sireName: String?,
         damName: String?,
-        onSaved: () -> Unit
+        onSaved: (Long) -> Unit
     ) {
         viewModelScope.launch {
-            repository.saveHorse(
+            val newId = repository.saveHorse(
                 Horse(
                     name = name,
                     breed = breed,
@@ -46,7 +46,7 @@ class AddHorseViewModel(
                     damName = damName?.takeIf { it.isNotBlank() }
                 )
             )
-            onSaved()
+            onSaved(newId)
         }
     }
 }
