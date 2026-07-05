@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
+import com.horsecare.app.data.entity.Horse
 import com.horsecare.app.data.entity.HorseSex
 import com.horsecare.app.util.PhotoFileUtil
 import java.time.Instant
@@ -42,6 +43,7 @@ private val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddHorseScreen(
+    initialHorse: Horse? = null,
     onBack: () -> Unit,
     onSave: (
         name: String,
@@ -61,23 +63,23 @@ fun AddHorseScreen(
 ) {
     val context = LocalContext.current
 
-    var photoUri by remember { mutableStateOf<Uri?>(null) }
+    var photoUri by remember { mutableStateOf<Uri?>(initialHorse?.photoUri?.let { Uri.parse(it) }) }
     var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
 
-    var name by remember { mutableStateOf("") }
-    var breed by remember { mutableStateOf("") }
-    var birthDate by remember { mutableStateOf<LocalDate?>(null) }
-    var sex by remember { mutableStateOf<HorseSex?>(null) }
-    var color by remember { mutableStateOf("") }
-    var chipNumber by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf(initialHorse?.name ?: "") }
+    var breed by remember { mutableStateOf(initialHorse?.breed ?: "") }
+    var birthDate by remember { mutableStateOf(initialHorse?.birthDate) }
+    var sex by remember { mutableStateOf(initialHorse?.sex) }
+    var color by remember { mutableStateOf(initialHorse?.color ?: "") }
+    var chipNumber by remember { mutableStateOf(initialHorse?.chipNumber ?: "") }
 
-    var expanded by remember { mutableStateOf(false) }
-    var heightCm by remember { mutableStateOf("") }
-    var weightKg by remember { mutableStateOf("") }
-    var markings by remember { mutableStateOf("") }
-    var acquiredDate by remember { mutableStateOf<LocalDate?>(null) }
-    var sireName by remember { mutableStateOf("") }
-    var damName by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(initialHorse != null) }
+    var heightCm by remember { mutableStateOf(initialHorse?.heightCm?.toString() ?: "") }
+    var weightKg by remember { mutableStateOf(initialHorse?.weightKg?.toString() ?: "") }
+    var markings by remember { mutableStateOf(initialHorse?.markings ?: "") }
+    var acquiredDate by remember { mutableStateOf(initialHorse?.acquiredDate) }
+    var sireName by remember { mutableStateOf(initialHorse?.sireName ?: "") }
+    var damName by remember { mutableStateOf(initialHorse?.damName ?: "") }
 
     var showBirthDatePicker by remember { mutableStateOf(false) }
     var showAcquiredDatePicker by remember { mutableStateOf(false) }
@@ -125,7 +127,7 @@ fun AddHorseScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Новий кінь") },
+                title = { Text(if (initialHorse != null) "Редагувати коня" else "Новий кінь") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Назад")
@@ -361,7 +363,7 @@ fun AddHorseScreen(
                 enabled = isFormValid,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Зберегти")
+                Text(if (initialHorse != null) "Зберегти зміни" else "Зберегти")
             }
 
             Spacer(Modifier.height(24.dp))
