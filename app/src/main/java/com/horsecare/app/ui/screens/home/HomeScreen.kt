@@ -3,17 +3,21 @@ package com.horsecare.app.ui.screens.home
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -30,6 +34,7 @@ private val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 fun HomeScreen(
     uiState: HomeUiState,
     onAddHorseClick: () -> Unit,
+    onEditHorseClick: () -> Unit,
     onMenuClick: () -> Unit,
     onMarkDone: (HealthRecord) -> Unit,
     onReschedule: (HealthRecord) -> Unit,
@@ -50,6 +55,11 @@ fun HomeScreen(
                     }
                 },
                 actions = {
+                    if (horse != null) {
+                        IconButton(onClick = onEditHorseClick) {
+                            Icon(Icons.Default.Edit, contentDescription = "Редагувати коня")
+                        }
+                    }
                     IconButton(onClick = onAddHorseClick) {
                         Icon(Icons.Default.Add, contentDescription = "Додати коня")
                     }
@@ -79,14 +89,25 @@ fun HomeScreen(
                 )
             }
 
-            AsyncImage(
-                model = horse.photoUri,
-                contentDescription = horse.name,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(220.dp)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-            )
+            Box(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(180.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    AsyncImage(
+                        model = horse.photoUri,
+                        contentDescription = horse.name,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
 
             HorseInfoCard(horse = horse)
 
@@ -105,8 +126,6 @@ fun HomeScreen(
         }
     }
 }
-
-// (обгортку прибрано - тепер verticalScroll викликається напряму)
 
 @Composable
 private fun OverdueBanner(
@@ -160,7 +179,16 @@ private fun HorseInfoCard(horse: Horse) {
             horse.heightCm?.let { Text("Зріст: $it см") }
             horse.weightKg?.let { Text("Вага: $it кг") }
             horse.markings?.let { Text("Прикмети: $it") }
-            horse.acquiredDate?.let { Text("Зі мною з: ${it.format(dateFormatter)}") }
+            horse.acquiredDate?.let { date ->
+                Text("Зі мною з: ${date.format(dateFormatter)}")
+                horse.ownershipPeriod?.let { period ->
+                    Text(
+                        "Стаж власника: ${formatOwnershipPeriod(period)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
             if (horse.sireName != null || horse.damName != null) {
                 Text("Батько: ${horse.sireName ?: "—"} / Мати: ${horse.damName ?: "—"}")
             }
@@ -177,6 +205,26 @@ private fun AnimatedVisibilityColumn(visible: Boolean, content: @Composable Colu
     androidx.compose.animation.AnimatedVisibility(visible = visible) {
         Column(content = content)
     }
+}
+
+private fun formatOwnershipPeriod(period: java.time.Period): String {
+    val years = period.years
+    val months = period.months
+
+    val yearsPart = when {
+        years == 0 -> null
+        years % 10 == 1 && years % 100 != 11 -> "$years рік"
+        years % 10 in 2..4 && years % 100 !in 12..14 -> "$years роки"
+        else -> "$years років"
+    }
+    val monthsPart = when {
+        months == 0 -> null
+        months % 10 == 1 && months % 100 != 11 -> "$months місяць"
+        months % 10 in 2..4 && months % 100 !in 12..14 -> "$months місяці"
+        else -> "$months місяців"
+    }
+
+    return listOfNotNull(yearsPart, monthsPart).joinToString(" ").ifEmpty { "менше місяця" }
 }
 
 @Composable
