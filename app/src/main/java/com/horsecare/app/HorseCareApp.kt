@@ -17,7 +17,8 @@ class HorseCareApp : Application() {
             trainingSessionDao = db.trainingSessionDao(),
             healthRecordDao = db.healthRecordDao(),
             contactDao = db.contactDao(),
-            reminderDao = db.reminderDao()
+            reminderDao = db.reminderDao(),
+            documentDao = db.documentDao()
         )
     }
 }
