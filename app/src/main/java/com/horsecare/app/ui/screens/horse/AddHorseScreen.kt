@@ -9,6 +9,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -23,6 +24,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -32,7 +36,11 @@ import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
 import com.horsecare.app.data.entity.Horse
 import com.horsecare.app.data.entity.HorseSex
+import com.horsecare.app.util.ImageCropUtil
 import com.horsecare.app.util.PhotoFileUtil
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -65,6 +73,14 @@ fun AddHorseScreen(
 
     var photoUri by remember { mutableStateOf<Uri?>(initialHorse?.photoUri?.let { Uri.parse(it) }) }
     var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
+    var zoom by remember { mutableStateOf(1f) }
+    var panOffset by remember { mutableStateOf(Offset.Zero) }
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(photoUri) {
+        zoom = 1f
+        panOffset = Offset.Zero
+    }
 
     var name by remember { mutableStateOf(initialHorse?.name ?: "") }
     var breed by remember { mutableStateOf(initialHorse?.breed ?: "") }
@@ -152,7 +168,20 @@ fun AddHorseScreen(
                     modifier = Modifier
                         .size(180.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .then(
+                            if (photoUri != null) {
+                                Modifier.pointerInput(photoUri) {
+                                    detectTransformGestures { _, pan, gestureZoom, _ ->
+                                        zoom = (zoom * gestureZoom).coerceIn(1f, 4f)
+                                        panOffset = Offset(
+                                            panOffset.x + pan.x / size.width,
+                                            panOffset.y + pan.y / size.height
+                                        )
+                                    }
+                                }
+                            } else Modifier
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     if (photoUri != null) {
@@ -160,7 +189,14 @@ fun AddHorseScreen(
                             model = photoUri,
                             contentDescription = "Фото коня",
                             contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer {
+                                    scaleX = zoom
+                                    scaleY = zoom
+                                    translationX = panOffset.x * size.width
+                                    translationY = panOffset.y * size.height
+                                }
                         )
                     } else {
                         Text(
@@ -169,6 +205,24 @@ fun AddHorseScreen(
                             textAlign = TextAlign.Center,
                             modifier = Modifier.padding(16.dp)
                         )
+                    }
+                }
+            }
+            if (photoUri != null) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Ущипніть, щоб наблизити, тягніть - щоб перемістити",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (zoom != 1f || panOffset != Offset.Zero) {
+                    TextButton(
+                        onClick = { zoom = 1f; panOffset = Offset.Zero },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Скинути масштаб")
                     }
                 }
             }
@@ -344,21 +398,28 @@ fun AddHorseScreen(
 
             Button(
                 onClick = {
-                    onSave(
-                        name.trim(),
-                        breed.trim(),
-                        birthDate!!,
-                        sex!!,
-                        color.trim(),
-                        chipNumber.trim(),
-                        photoUri?.toString(),
-                        heightCm.toIntOrNull(),
-                        weightKg.toDoubleOrNull(),
-                        markings.trim(),
-                        acquiredDate,
-                        sireName.trim(),
-                        damName.trim()
-                    )
+                    coroutineScope.launch {
+                        val finalPhotoUri = photoUri?.let { uri ->
+                            withContext(Dispatchers.IO) {
+                                ImageCropUtil.cropAndSave(context, uri, zoom, panOffset)
+                            }
+                        }
+                        onSave(
+                            name.trim(),
+                            breed.trim(),
+                            birthDate!!,
+                            sex!!,
+                            color.trim(),
+                            chipNumber.trim(),
+                            (finalPhotoUri ?: photoUri)?.toString(),
+                            heightCm.toIntOrNull(),
+                            weightKg.toDoubleOrNull(),
+                            markings.trim(),
+                            acquiredDate,
+                            sireName.trim(),
+                            damName.trim()
+                        )
+                    }
                 },
                 enabled = isFormValid,
                 modifier = Modifier.fillMaxWidth()
