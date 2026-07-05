@@ -5,11 +5,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MedicalServices
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.HorizontalDivider
@@ -24,6 +25,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -31,6 +33,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.horsecare.app.ui.RepositoryViewModelFactory
+import com.horsecare.app.ui.SelectedHorseViewModel
 import com.horsecare.app.ui.screens.common.PlaceholderScreen
 import com.horsecare.app.ui.screens.documents.DocumentsScreen
 import com.horsecare.app.ui.screens.documents.DocumentsViewModel
@@ -42,9 +45,6 @@ import com.horsecare.app.ui.screens.horse.EditHorseViewModel
 import com.horsecare.app.ui.theme.HorseCareTheme
 import kotlinx.coroutines.launch
 
-// Поки що працюємо з першим конем (id = 1). Коли додамо перемикач - id буде динамічним.
-private const val CURRENT_HORSE_ID = 1L
-
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,11 +54,15 @@ class MainActivity : ComponentActivity() {
                 val drawerState = rememberDrawerState(DrawerValue.Closed)
                 val scope = rememberCoroutineScope()
 
+                val selectedHorseViewModel: SelectedHorseViewModel = viewModel(
+                    factory = RepositoryViewModelFactory { repo -> SelectedHorseViewModel(repo) }
+                )
+                val allHorses by selectedHorseViewModel.allHorses.collectAsState()
+                val selectedHorseId by selectedHorseViewModel.selectedHorseId.collectAsState()
+
                 fun navigateFromDrawer(route: String) {
                     scope.launch { drawerState.close() }
-                    navController.navigate(route) {
-                        launchSingleTop = true
-                    }
+                    navController.navigate(route) { launchSingleTop = true }
                 }
 
                 ModalNavigationDrawer(
@@ -70,7 +74,40 @@ class MainActivity : ComponentActivity() {
                                 style = MaterialTheme.typography.titleLarge,
                                 modifier = Modifier.padding(16.dp)
                             )
-                            HorizontalDivider()
+
+                            Text(
+                                "Мої коні",
+                                style = MaterialTheme.typography.labelLarge,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                            )
+                            allHorses.forEach { horse ->
+                                NavigationDrawerItem(
+                                    label = {
+                                        Text(
+                                            horse.name,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    },
+                                    icon = { Icon(Icons.Default.Pets, contentDescription = null) },
+                                    selected = horse.id == selectedHorseId,
+                                    onClick = {
+                                        selectedHorseViewModel.selectHorse(horse.id)
+                                        navigateFromDrawer("home")
+                                    },
+                                    modifier = Modifier.padding(horizontal = 12.dp)
+                                )
+                            }
+                            NavigationDrawerItem(
+                                label = { Text("Додати коня") },
+                                icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                                selected = false,
+                                onClick = { navigateFromDrawer("addHorse") },
+                                modifier = Modifier.padding(horizontal = 12.dp)
+                            )
+
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
                             NavigationDrawerItem(
                                 label = { Text("Головна") },
                                 icon = { Icon(Icons.Default.Home, contentDescription = null) },
@@ -106,19 +143,16 @@ class MainActivity : ComponentActivity() {
                                 onClick = { navigateFromDrawer("documents") },
                                 modifier = Modifier.padding(horizontal = 12.dp)
                             )
-                            NavigationDrawerItem(
-                                label = { Text("Профіль коня") },
-                                icon = { Icon(Icons.Default.Person, contentDescription = null) },
-                                selected = false,
-                                onClick = { navigateFromDrawer("editHorse") },
-                                modifier = Modifier.padding(horizontal = 12.dp)
-                            )
                         }
                     }
                 ) {
                     HorseCareNavHost(
                         navController = navController,
-                        onOpenDrawer = { scope.launch { drawerState.open() } }
+                        onOpenDrawer = { scope.launch { drawerState.open() } },
+                        selectedHorseId = selectedHorseId,
+                        onHorseSaved = { newId ->
+                            selectedHorseViewModel.selectHorse(newId)
+                        }
                     )
                 }
             }
@@ -129,14 +163,20 @@ class MainActivity : ComponentActivity() {
 @androidx.compose.runtime.Composable
 private fun HorseCareNavHost(
     navController: NavHostController,
-    onOpenDrawer: () -> Unit
+    onOpenDrawer: () -> Unit,
+    selectedHorseId: Long?,
+    onHorseSaved: (Long) -> Unit
 ) {
+    // Поки немає жодного коня - працюємо з "неіснуючим" id, HomeScreen сам покаже порожній стан.
+    val activeHorseId = selectedHorseId ?: -1L
+
     NavHost(navController = navController, startDestination = "home") {
 
         composable("home") {
             val homeViewModel: HomeViewModel = viewModel(
+                key = "home-$activeHorseId",
                 factory = RepositoryViewModelFactory { repo ->
-                    HomeViewModel(repo, horseId = CURRENT_HORSE_ID)
+                    HomeViewModel(repo, horseId = activeHorseId)
                 }
             )
             val uiState by homeViewModel.uiState.collectAsState()
@@ -175,7 +215,10 @@ private fun HorseCareNavHost(
                         chipNumber = chipNumber, photoUri = photoUri, heightCm = heightCm,
                         weightKg = weightKg, markings = markings, acquiredDate = acquiredDate,
                         sireName = sireName, damName = damName,
-                        onSaved = { navController.popBackStack() }
+                        onSaved = { newId ->
+                            onHorseSaved(newId)
+                            navController.popBackStack()
+                        }
                     )
                 }
             )
@@ -183,8 +226,9 @@ private fun HorseCareNavHost(
 
         composable("editHorse") {
             val editHorseViewModel: EditHorseViewModel = viewModel(
+                key = "edit-$activeHorseId",
                 factory = RepositoryViewModelFactory { repo ->
-                    EditHorseViewModel(repo, horseId = CURRENT_HORSE_ID)
+                    EditHorseViewModel(repo, horseId = activeHorseId)
                 }
             )
             val existingHorse by editHorseViewModel.horse.collectAsState()
@@ -215,8 +259,9 @@ private fun HorseCareNavHost(
 
         composable("documents") {
             val documentsViewModel: DocumentsViewModel = viewModel(
+                key = "documents-$activeHorseId",
                 factory = RepositoryViewModelFactory { repo ->
-                    DocumentsViewModel(repo, horseId = CURRENT_HORSE_ID)
+                    DocumentsViewModel(repo, horseId = activeHorseId)
                 }
             )
             val documents by documentsViewModel.documents.collectAsState()
