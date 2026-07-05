@@ -1,11 +1,13 @@
 package com.horsecare.app.data.repository
 
 import com.horsecare.app.data.dao.ContactDao
+import com.horsecare.app.data.dao.DocumentDao
 import com.horsecare.app.data.dao.HealthRecordDao
 import com.horsecare.app.data.dao.HorseDao
 import com.horsecare.app.data.dao.ReminderDao
 import com.horsecare.app.data.dao.TrainingSessionDao
 import com.horsecare.app.data.entity.Contact
+import com.horsecare.app.data.entity.Document
 import com.horsecare.app.data.entity.HealthRecord
 import com.horsecare.app.data.entity.Horse
 import com.horsecare.app.data.entity.Reminder
@@ -27,7 +29,8 @@ class HorseCareRepository(
     private val trainingSessionDao: TrainingSessionDao,
     private val healthRecordDao: HealthRecordDao,
     private val contactDao: ContactDao,
-    private val reminderDao: ReminderDao
+    private val reminderDao: ReminderDao,
+    private val documentDao: DocumentDao
 ) {
     // --- Horse ---
     fun getAllHorses(): Flow<List<Horse>> = horseDao.getAllHorses()
@@ -109,4 +112,9 @@ class HorseCareRepository(
     // --- Contacts ---
     fun getAllContacts(): Flow<List<Contact>> = contactDao.getAllContacts()
     suspend fun saveContact(contact: Contact): Long = contactDao.insert(contact)
+
+    // --- Documents ---
+    fun getDocuments(horseId: Long): Flow<List<Document>> = documentDao.getDocumentsForHorse(horseId)
+    suspend fun saveDocument(document: Document): Long = documentDao.insert(document)
+    suspend fun deleteDocument(document: Document) = documentDao.delete(document)
 }
