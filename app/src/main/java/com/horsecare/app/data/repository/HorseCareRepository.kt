@@ -38,6 +38,18 @@ class HorseCareRepository(
     suspend fun saveHorse(horse: Horse): Long = horseDao.insert(horse)
     suspend fun updateHorse(horse: Horse) = horseDao.update(horse)
 
+    /**
+     * Повністю видаляє коня разом з усіма пов'язаними записами
+     * (тренування, здоров'я, нагадування, документи), щоб не лишати "сирітських" даних.
+     */
+    suspend fun deleteHorseCompletely(horse: Horse) {
+        reminderDao.deleteAllForHorse(horse.id)
+        healthRecordDao.deleteAllForHorse(horse.id)
+        trainingSessionDao.deleteAllForHorse(horse.id)
+        documentDao.deleteAllForHorse(horse.id)
+        horseDao.delete(horse)
+    }
+
     // --- Training ---
     fun getSessionsForHorse(horseId: Long): Flow<List<TrainingSession>> =
         trainingSessionDao.getSessionsForHorse(horseId)
@@ -61,10 +73,6 @@ class HorseCareRepository(
     fun getFrequentNamesForType(horseId: Long, type: String): Flow<List<String>> =
         healthRecordDao.getFrequentNamesForType(horseId, type)
 
-    /**
-     * Зберігає запис здоров'я і одразу планує два нагадування
-     * (за 3 дні до nextDueDate і в день nextDueDate), якщо nextDueDate вказано.
-     */
     suspend fun saveHealthRecordWithReminders(record: HealthRecord): Long {
         val recordId = healthRecordDao.insert(record)
         record.nextDueDate?.let { dueDate ->
@@ -87,9 +95,6 @@ class HorseCareRepository(
         return recordId
     }
 
-    /**
-     * Перенесення дати наступної події: оновлює nextDueDate і перепланує нагадування.
-     */
     suspend fun rescheduleHealthRecord(recordId: Long, newDate: LocalDate) {
         healthRecordDao.updateNextDueDate(recordId, newDate.toString())
         reminderDao.deleteForRecord(recordId)
