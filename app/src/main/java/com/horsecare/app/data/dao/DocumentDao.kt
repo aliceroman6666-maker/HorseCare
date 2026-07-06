@@ -19,4 +19,7 @@ interface DocumentDao {
 
     @Delete
     suspend fun delete(document: Document)
+
+    @Query("DELETE FROM documents WHERE horseId = :horseId")
+    suspend fun deleteAllForHorse(horseId: Long)
 }
