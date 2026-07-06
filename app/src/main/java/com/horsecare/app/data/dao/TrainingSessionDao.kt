@@ -16,7 +16,6 @@ interface TrainingSessionDao {
     @Query("SELECT * FROM training_sessions WHERE horseId = :horseId ORDER BY date DESC, createdAt DESC LIMIT 1")
     fun getLastSession(horseId: Long): Flow<TrainingSession?>
 
-    // Найчастіші типи тренувань цього коня - для чіпів autocomplete
     @Query("""
         SELECT type FROM training_sessions
         WHERE horseId = :horseId
@@ -28,4 +27,7 @@ interface TrainingSessionDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(session: TrainingSession): Long
+
+    @Query("DELETE FROM training_sessions WHERE horseId = :horseId")
+    suspend fun deleteAllForHorse(horseId: Long)
 }
