@@ -23,4 +23,11 @@ class EditHorseViewModel(
             onSaved()
         }
     }
+
+    fun deleteHorse(horse: Horse, onDeleted: () -> Unit) {
+        viewModelScope.launch {
+            repository.deleteHorseCompletely(horse)
+            onDeleted()
+        }
+    }
 }
