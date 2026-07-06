@@ -17,4 +17,7 @@ interface ReminderDao {
 
     @Query("DELETE FROM reminders WHERE healthRecordId = :healthRecordId")
     suspend fun deleteForRecord(healthRecordId: Long)
+
+    @Query("DELETE FROM reminders WHERE healthRecordId IN (SELECT id FROM health_records WHERE horseId = :horseId)")
+    suspend fun deleteAllForHorse(horseId: Long)
 }
