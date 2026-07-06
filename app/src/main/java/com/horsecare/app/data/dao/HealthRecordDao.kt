@@ -16,7 +16,6 @@ interface HealthRecordDao {
     @Query("SELECT * FROM health_records WHERE horseId = :horseId AND type = :type ORDER BY date DESC")
     fun getRecordsByType(horseId: Long, type: String): Flow<List<HealthRecord>>
 
-    // Для кожного типу - найновіший запис (щоб визначити чи прострочено nextDueDate)
     @Query("""
         SELECT hr.* FROM health_records hr
         INNER JOIN (
@@ -29,7 +28,6 @@ interface HealthRecordDao {
     """)
     fun getLatestRecordPerType(horseId: Long): Flow<List<HealthRecord>>
 
-    // Autocomplete: найчастіші назви (вакцини/препарати) для конкретного типу запису
     @Query("""
         SELECT name FROM health_records
         WHERE horseId = :horseId AND type = :type
@@ -44,4 +42,7 @@ interface HealthRecordDao {
 
     @Query("UPDATE health_records SET nextDueDate = :newDate WHERE id = :recordId")
     suspend fun updateNextDueDate(recordId: Long, newDate: String)
+
+    @Query("DELETE FROM health_records WHERE horseId = :horseId")
+    suspend fun deleteAllForHorse(horseId: Long)
 }
