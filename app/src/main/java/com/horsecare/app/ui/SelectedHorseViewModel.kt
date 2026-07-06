@@ -32,4 +32,14 @@ class SelectedHorseViewModel(
     fun selectHorse(id: Long) {
         manuallySelectedId.value = id
     }
+
+    /**
+     * Викликається після видалення коня. Якщо видалили саме поточно обраного -
+     * скидаємо вибір, і selectedHorseId сам підхопить першого коня зі списку, що лишився.
+     */
+    fun onHorseDeleted(deletedId: Long) {
+        if (manuallySelectedId.value == deletedId) {
+            manuallySelectedId.value = null
+        }
+    }
 }
