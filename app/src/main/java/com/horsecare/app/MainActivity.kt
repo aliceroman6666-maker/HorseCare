@@ -235,6 +235,7 @@ private fun HorseCareNavHost(
                 }
             )
             val existingHorse by editHorseViewModel.horse.collectAsState()
+            val documentsCount by editHorseViewModel.documentsCount.collectAsState()
 
             existingHorse?.let { horse ->
                 AddHorseScreen(
@@ -246,6 +247,8 @@ private fun HorseCareNavHost(
                             navController.popBackStack()
                         }
                     },
+                    documentsCount = documentsCount,
+                    onOpenDocuments = { navController.navigate("documents") },
                     onSave = { name, breed, birthDate, sex, color, chipNumber,
                                photoUri, heightCm, weightKg, markings,
                                acquiredDate, sireName, damName ->
