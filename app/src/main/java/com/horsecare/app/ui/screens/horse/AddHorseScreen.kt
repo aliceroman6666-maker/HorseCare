@@ -7,6 +7,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTransformGestures
@@ -18,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -53,6 +55,7 @@ private val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 fun AddHorseScreen(
     initialHorse: Horse? = null,
     onBack: () -> Unit,
+    onDelete: (() -> Unit)? = null,
     onSave: (
         name: String,
         breed: String,
@@ -100,13 +103,12 @@ fun AddHorseScreen(
     var showBirthDatePicker by remember { mutableStateOf(false) }
     var showAcquiredDatePicker by remember { mutableStateOf(false) }
     var sexMenuExpanded by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
-    // --- Вибір фото з галереї (системний Photo Picker, дозволи не потрібні) ---
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri -> uri?.let { photoUri = it } }
 
-    // --- Зйомка фото камерою ---
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
@@ -252,7 +254,6 @@ fun AddHorseScreen(
 
             Spacer(Modifier.height(20.dp))
 
-            // --- Обов'язкові поля ---
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
@@ -333,7 +334,6 @@ fun AddHorseScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // --- Довідкові поля ---
             AnimatedVisibility(visible = expanded) {
                 Column {
                     OutlinedTextField(
@@ -427,6 +427,34 @@ fun AddHorseScreen(
                 Text(if (initialHorse != null) "Зберегти зміни" else "Зберегти")
             }
 
+            if (initialHorse != null && onDelete != null) {
+                Spacer(Modifier.height(32.dp))
+                HorizontalDivider()
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    "Небезпечна зона",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = { showDeleteConfirm = true },
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.Delete, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Видалити коня")
+                }
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Видалення профілю призведе до безповоротної втрати всіх даних про цього коня.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
             Spacer(Modifier.height(24.dp))
         }
     }
@@ -441,6 +469,34 @@ fun AddHorseScreen(
         DatePickerModal(
             onDateSelected = { acquiredDate = it; showAcquiredDatePicker = false },
             onDismiss = { showAcquiredDatePicker = false }
+        )
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Видалити ${initialHorse?.name}?") },
+            text = {
+                Text(
+                    "Усі дані про коня (профіль, здоров'я, тренування, документи) буде " +
+                        "втрачено безповоротно. Цю дію не можна скасувати."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirm = false
+                        onDelete?.invoke()
+                    }
+                ) {
+                    Text("Видалити", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text("Скасувати")
+                }
+            }
         )
     }
 }
