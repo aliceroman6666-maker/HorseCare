@@ -35,6 +35,10 @@ fun DocumentsScreen(
 ) {
     val context = LocalContext.current
 
+    var pendingUri by remember { mutableStateOf<Uri?>(null) }
+    var pendingMimeType by remember { mutableStateOf<String?>(null) }
+    var pendingTitle by remember { mutableStateOf("") }
+
     val pickDocumentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
@@ -47,9 +51,9 @@ fun DocumentsScreen(
             } catch (e: SecurityException) {
                 // деякі провайдери не підтримують persistable permission - ігноруємо
             }
-            val displayName = queryDisplayName(context, it) ?: "Документ"
-            val mimeType = context.contentResolver.getType(it)
-            onAddDocument(displayName, it.toString(), mimeType)
+            pendingUri = it
+            pendingMimeType = context.contentResolver.getType(it)
+            pendingTitle = queryDisplayName(context, it) ?: "Документ"
         }
     }
 
@@ -102,6 +106,48 @@ fun DocumentsScreen(
                 item { Spacer(Modifier.height(72.dp)) } // місце під FAB
             }
         }
+    }
+
+    if (pendingUri != null) {
+        AlertDialog(
+            onDismissRequest = { pendingUri = null },
+            title = { Text("Назва документа") },
+            text = {
+                Column {
+                    Text(
+                        "Наприклад: \"Паспорт коня\", \"Довідка від ветеринара\"",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = pendingTitle,
+                        onValueChange = { pendingTitle = it },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val uri = pendingUri
+                        if (uri != null) {
+                            val title = pendingTitle.trim().ifBlank { "Документ" }
+                            onAddDocument(title, uri.toString(), pendingMimeType)
+                        }
+                        pendingUri = null
+                    }
+                ) {
+                    Text("Зберегти")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingUri = null }) {
+                    Text("Скасувати")
+                }
+            }
+        )
     }
 }
 
