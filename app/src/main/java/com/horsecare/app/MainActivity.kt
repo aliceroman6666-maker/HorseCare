@@ -152,6 +152,9 @@ class MainActivity : ComponentActivity() {
                         selectedHorseId = selectedHorseId,
                         onHorseSaved = { newId ->
                             selectedHorseViewModel.selectHorse(newId)
+                        },
+                        onHorseDeleted = { deletedId ->
+                            selectedHorseViewModel.onHorseDeleted(deletedId)
                         }
                     )
                 }
@@ -165,9 +168,9 @@ private fun HorseCareNavHost(
     navController: NavHostController,
     onOpenDrawer: () -> Unit,
     selectedHorseId: Long?,
-    onHorseSaved: (Long) -> Unit
+    onHorseSaved: (Long) -> Unit,
+    onHorseDeleted: (Long) -> Unit
 ) {
-    // Поки немає жодного коня - працюємо з "неіснуючим" id, HomeScreen сам покаже порожній стан.
     val activeHorseId = selectedHorseId ?: -1L
 
     NavHost(navController = navController, startDestination = "home") {
@@ -237,6 +240,12 @@ private fun HorseCareNavHost(
                 AddHorseScreen(
                     initialHorse = horse,
                     onBack = { navController.popBackStack() },
+                    onDelete = {
+                        editHorseViewModel.deleteHorse(horse) {
+                            onHorseDeleted(horse.id)
+                            navController.popBackStack()
+                        }
+                    },
                     onSave = { name, breed, birthDate, sex, color, chipNumber,
                                photoUri, heightCm, weightKg, markings,
                                acquiredDate, sireName, damName ->
