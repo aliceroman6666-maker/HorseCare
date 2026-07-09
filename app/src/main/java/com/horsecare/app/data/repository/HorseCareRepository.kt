@@ -120,6 +120,7 @@ class HorseCareRepository(
 
     // --- Documents ---
     fun getDocuments(horseId: Long): Flow<List<Document>> = documentDao.getDocumentsForHorse(horseId)
+    suspend fun getDocumentById(id: Long): Document? = documentDao.getById(id)
     suspend fun saveDocument(document: Document): Long = documentDao.insert(document)
     suspend fun deleteDocument(document: Document) = documentDao.delete(document)
 }
