@@ -8,6 +8,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Warning
@@ -41,6 +43,7 @@ fun HomeScreen(
     onOpenHealth: () -> Unit,
     onOpenTraining: () -> Unit,
     onOpenFeeding: () -> Unit,
+    onOpenDocuments: () -> Unit,
     onOpenProfile: () -> Unit
 ) {
     val horse = uiState.horse
@@ -80,7 +83,6 @@ fun HomeScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Банер прострочень - завжди зверху, перекриває звичайну "найближчу подію"
             if (uiState.overdueItems.isNotEmpty()) {
                 OverdueBanner(
                     items = uiState.overdueItems,
@@ -116,6 +118,8 @@ fun HomeScreen(
             }
 
             uiState.lastTraining?.let { LastTrainingCard(it) }
+
+            DocumentsLinkCard(count = uiState.documentsCount, onClick = onOpenDocuments)
 
             SectionGrid(
                 onOpenHealth = onOpenHealth,
@@ -225,6 +229,27 @@ private fun formatOwnershipPeriod(period: java.time.Period): String {
     }
 
     return listOfNotNull(yearsPart, monthsPart).joinToString(" ").ifEmpty { "менше місяця" }
+}
+
+@Composable
+private fun DocumentsLinkCard(count: Int, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+        onClick = onClick
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Default.Description, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.width(12.dp))
+            Text(
+                if (count > 0) "Документи ($count)" else "Документи - додати скани",
+                modifier = Modifier.weight(1f)
+            )
+            Icon(Icons.Default.ChevronRight, contentDescription = null)
+        }
+    }
 }
 
 @Composable
