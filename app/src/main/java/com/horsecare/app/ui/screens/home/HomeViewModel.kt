@@ -7,12 +7,9 @@ import com.horsecare.app.data.entity.Horse
 import com.horsecare.app.data.entity.TrainingSession
 import com.horsecare.app.data.repository.HorseCareRepository
 import com.horsecare.app.data.repository.OverdueHealthItem
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -22,7 +19,8 @@ data class HomeUiState(
     val horse: Horse? = null,
     val lastTraining: TrainingSession? = null,
     val overdueItems: List<OverdueHealthItem> = emptyList(),
-    val nearestUpcoming: HealthRecord? = null
+    val nearestUpcoming: HealthRecord? = null,
+    val documentsCount: Int = 0
 )
 
 class HomeViewModel(
@@ -34,8 +32,9 @@ class HomeViewModel(
         combine(
             repository.getHorseById(horseId),
             repository.getLastSession(horseId),
-            repository.getLatestRecordPerType(horseId)
-        ) { horse, lastTraining, latestPerType ->
+            repository.getLatestRecordPerType(horseId),
+            repository.getDocuments(horseId)
+        ) { horse, lastTraining, latestPerType, documents ->
             val today = LocalDate.now()
 
             val overdue = latestPerType
@@ -51,7 +50,8 @@ class HomeViewModel(
                 horse = horse,
                 lastTraining = lastTraining,
                 overdueItems = overdue,
-                nearestUpcoming = nearestUpcoming
+                nearestUpcoming = nearestUpcoming,
+                documentsCount = documents.size
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeUiState())
 
