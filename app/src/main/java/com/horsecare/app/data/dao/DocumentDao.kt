@@ -14,6 +14,9 @@ interface DocumentDao {
     @Query("SELECT * FROM documents WHERE horseId = :horseId ORDER BY addedDate DESC, id DESC")
     fun getDocumentsForHorse(horseId: Long): Flow<List<Document>>
 
+    @Query("SELECT * FROM documents WHERE id = :id")
+    suspend fun getById(id: Long): Document?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(document: Document): Long
 
