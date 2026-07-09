@@ -29,12 +29,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.horsecare.app.ui.RepositoryViewModelFactory
 import com.horsecare.app.ui.SelectedHorseViewModel
 import com.horsecare.app.ui.screens.common.PlaceholderScreen
+import com.horsecare.app.ui.screens.documents.DocumentViewerScreen
+import com.horsecare.app.ui.screens.documents.DocumentViewerViewModel
 import com.horsecare.app.ui.screens.documents.DocumentsScreen
 import com.horsecare.app.ui.screens.documents.DocumentsViewModel
 import com.horsecare.app.ui.screens.home.HomeScreen
@@ -199,6 +203,7 @@ private fun HorseCareNavHost(
                 onOpenHealth = { navController.navigate("health") },
                 onOpenTraining = { navController.navigate("training") },
                 onOpenFeeding = { navController.navigate("feeding") },
+                onOpenDocuments = { navController.navigate("documents") },
                 onOpenProfile = { navController.navigate("editHorse") }
             )
         }
@@ -281,10 +286,30 @@ private fun HorseCareNavHost(
             DocumentsScreen(
                 documents = documents,
                 onBack = { navController.popBackStack() },
-                onAddDocument = { title, uri, mimeType ->
-                    documentsViewModel.addDocument(title, uri, mimeType)
+                onOpenDocument = { doc -> navController.navigate("documentViewer/${doc.id}") },
+                onAddDocument = { title, uris, mimeType ->
+                    documentsViewModel.addDocument(title, uris, mimeType)
                 },
                 onDeleteDocument = { documentsViewModel.deleteDocument(it) }
+            )
+        }
+
+        composable(
+            route = "documentViewer/{documentId}",
+            arguments = listOf(navArgument("documentId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val documentId = backStackEntry.arguments?.getLong("documentId") ?: -1L
+            val viewerViewModel: DocumentViewerViewModel = viewModel(
+                key = "documentViewer-$documentId",
+                factory = RepositoryViewModelFactory { repo ->
+                    DocumentViewerViewModel(repo, documentId = documentId)
+                }
+            )
+            val document by viewerViewModel.document.collectAsState()
+
+            DocumentViewerScreen(
+                document = document,
+                onBack = { navController.popBackStack() }
             )
         }
 
