@@ -17,10 +17,16 @@ class DocumentsViewModel(
     val documents: StateFlow<List<Document>> = repository.getDocuments(horseId)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    fun addDocument(title: String, uri: String, mimeType: String?) {
+    /** uris - одна чи декілька сторінок/фото, що складають один документ. */
+    fun addDocument(title: String, uris: List<String>, mimeType: String?) {
         viewModelScope.launch {
             repository.saveDocument(
-                Document(horseId = horseId, title = title, uri = uri, mimeType = mimeType)
+                Document(
+                    horseId = horseId,
+                    title = title,
+                    uris = Document.joinUris(uris),
+                    mimeType = mimeType
+                )
             )
         }
     }
