@@ -46,6 +46,9 @@ import com.horsecare.app.ui.screens.home.HomeViewModel
 import com.horsecare.app.ui.screens.horse.AddHorseScreen
 import com.horsecare.app.ui.screens.horse.AddHorseViewModel
 import com.horsecare.app.ui.screens.horse.EditHorseViewModel
+import com.horsecare.app.ui.screens.training.AddTrainingScreen
+import com.horsecare.app.ui.screens.training.TrainingScreen
+import com.horsecare.app.ui.screens.training.TrainingViewModel
 import com.horsecare.app.ui.theme.HorseCareTheme
 import kotlinx.coroutines.launch
 
@@ -316,9 +319,42 @@ private fun HorseCareNavHost(
         composable("health") {
             PlaceholderScreen(title = "Здоров'я", onBack = { navController.popBackStack() })
         }
+
         composable("training") {
-            PlaceholderScreen(title = "Тренування", onBack = { navController.popBackStack() })
+            val trainingViewModel: TrainingViewModel = viewModel(
+                key = "training-$activeHorseId",
+                factory = RepositoryViewModelFactory { repo ->
+                    TrainingViewModel(repo, horseId = activeHorseId)
+                }
+            )
+            val sessions by trainingViewModel.sessions.collectAsState()
+
+            TrainingScreen(
+                sessions = sessions,
+                onBack = { navController.popBackStack() },
+                onAddTraining = { navController.navigate("addTraining") }
+            )
         }
+
+        composable("addTraining") {
+            val trainingViewModel: TrainingViewModel = viewModel(
+                key = "training-$activeHorseId",
+                factory = RepositoryViewModelFactory { repo ->
+                    TrainingViewModel(repo, horseId = activeHorseId)
+                }
+            )
+            val frequentTypes by trainingViewModel.frequentTypes.collectAsState()
+
+            AddTrainingScreen(
+                frequentTypes = frequentTypes,
+                onBack = { navController.popBackStack() },
+                onSave = { date, type, durationMinutes, notes, condition ->
+                    trainingViewModel.saveSession(date, type, durationMinutes, notes, condition)
+                    navController.popBackStack()
+                }
+            )
+        }
+
         composable("feeding") {
             PlaceholderScreen(title = "Годування", onBack = { navController.popBackStack() })
         }
