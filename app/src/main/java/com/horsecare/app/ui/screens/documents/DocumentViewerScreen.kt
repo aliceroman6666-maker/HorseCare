@@ -3,6 +3,7 @@ package com.horsecare.app.ui.screens.documents
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
@@ -83,6 +84,7 @@ fun DocumentViewerScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ImagePager(uris: List<String>) {
     if (uris.isEmpty()) {
@@ -110,6 +112,7 @@ private fun ImagePager(uris: List<String>) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun PdfPager(uri: String) {
     val context = LocalContext.current
