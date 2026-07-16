@@ -14,5 +14,6 @@ data class TrainingSession(
     val durationMinutes: Int,
     val notes: String? = null,
     val horseCondition: HorseConditionAfterTraining? = null,
+    val conditionNote: String? = null,
     val createdAt: Instant = Instant.now()
 )
