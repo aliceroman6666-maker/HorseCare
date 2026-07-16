@@ -1,6 +1,7 @@
 package com.horsecare.app.data.dao
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -19,6 +20,7 @@ interface TrainingSessionDao {
     @Query("""
         SELECT type FROM training_sessions
         WHERE horseId = :horseId
+        AND type NOT IN (SELECT type FROM dismissed_training_types WHERE horseId = :horseId)
         GROUP BY type
         ORDER BY COUNT(*) DESC, MAX(date) DESC
         LIMIT 10
@@ -27,6 +29,9 @@ interface TrainingSessionDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(session: TrainingSession): Long
+
+    @Delete
+    suspend fun delete(session: TrainingSession)
 
     @Query("DELETE FROM training_sessions WHERE horseId = :horseId")
     suspend fun deleteAllForHorse(horseId: Long)
